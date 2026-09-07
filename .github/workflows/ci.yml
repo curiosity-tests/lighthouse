@@ -58,7 +58,24 @@ jobs:
         test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
         test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
-    - run: bash core/scripts/github-actions-commit-range.sh
+    # racecar: workflow_dispatch supplies neither a pull_request payload nor
+    # github.event.before, so both env vars arrive empty, the upstream script
+    # takes its "No GitHub Actions context available. Exiting..." branch and
+    # exits 1 as step 4 of 26 -- every real step after it was skipped. HEAD~1 is
+    # the same base a single-commit push would report, and it is in reach
+    # because the checkout above uses fetch-depth: 100. The only consumers
+    # (core/scripts/test-legacy-javascript.sh, core/scripts/dogfood-lhci.sh)
+    # use the range solely to compute a changed-file list, so this reproduces
+    # push semantics rather than inventing new ones. Step name kept verbatim so
+    # the before/after comparison lands on the same step.
+    - name: Run bash core/scripts/github-actions-commit-range.sh
+      run: |
+        if [ -z "$GITHUB_CONTEXT_PR_BASE_SHA" ] && [ -z "$GITHUB_CONTEXT_BASE_SHA" ]; then
+          GITHUB_CONTEXT_BASE_SHA="$(git rev-parse HEAD~1)"
+          export GITHUB_CONTEXT_BASE_SHA
+          echo "No event base SHA (workflow_dispatch); using HEAD~1 ${GITHUB_CONTEXT_BASE_SHA}"
+        fi
+        bash core/scripts/github-actions-commit-range.sh
       env:
         GITHUB_CONTEXT_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         GITHUB_CONTEXT_BASE_SHA: ${{ github.event.before }}
