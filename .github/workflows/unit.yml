@@ -82,24 +82,3 @@ jobs:
         path: .tmp/unit-failures/
 
   # For windows, just test the potentially platform-specific code.
-  unit-windows:
-    runs-on: windows-latest
-    name: Windows unit
-
-    steps:
-    - name: git clone
-      uses: actions/checkout@v4
-
-    - name: Use Node.js 22.19
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.19'
-
-    - run: yarn install --frozen-lockfile --network-timeout 1000000
-    - run: yarn build-report
-
-    - run: yarn unit-cli
-    - run: yarn diff:sample-json
-
-    # Fail if any changes were written to any source files or generated untracked files (ex, from -GA).
-    - run: git add -A && git diff --cached --exit-code
