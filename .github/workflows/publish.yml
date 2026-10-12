@@ -6,8 +6,6 @@ on:
     tags:
       - 'v*' # Runs on pushing version tags
   # For the nightly release.
-  schedule:
-    - cron: '0 5 * * *'
   # For the nightly release.
   workflow_dispatch: {}
 
